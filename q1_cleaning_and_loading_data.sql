@@ -2,7 +2,6 @@
 
 /*
 Creating staging tables to inspect and clean the data
-
 */
 
 DROP TABLE IF EXISTS users_staging;
@@ -11,7 +10,6 @@ CREATE TABLE users_staging (
 	     userid text,
 	 attribute1 int,
 	 attribute2 text,
-	PRIMARY KEY (userid)
 	);
 
 DROP TABLE IF EXISTS event_performance_staging;
@@ -21,7 +19,6 @@ CREATE TABLE event_performance_staging (
 	event_date text,
 	      hour int,
 	    points text,
-	CONSTRAINT valid_hour CHECK (hour >= 0 AND hour <= 23)
 	);
 
 /*
@@ -29,12 +26,12 @@ Copying CSVs to staging tables
 */
 
 COPY users_staging(userid, attribute1, attribute2)
-FROM '/Users/rancher/Google Drive/Coding/Interviews/OhmConnect/data/users.csv'
+FROM '/Users/rancher/Google Drive/Coding/Interviews/OhmConnect/take_home_assignment/app_and_user_behavior_report/data/users.csv'
 DELIMITER ','
 CSV HEADER;
 
 COPY event_performance_staging(userid, event_date, hour, points)
-FROM '/Users/rancher/Google Drive/Coding/Interviews/OhmConnect/data/event_performance.csv'
+FROM '/Users/rancher/Google Drive/Coding/Interviews/OhmConnect/take_home_assignment/app_and_user_behavior_report/data/event_performance.csv'
 DELIMITER ','
 CSV HEADER;
 
@@ -57,8 +54,8 @@ SELECT *
 
 /*
 Attempting to convert event_date to DATE type
-
 */
+
 SELECT event_date::date
   FROM event_performance_staging;
 
@@ -72,6 +69,7 @@ Because it's unclear whether the date is meant to be 1/24/2019,
 entry from the dataset.Dropping one observation from a dataset 
 this size shouldn't matter too much.
 */
+
 DELETE FROM event_performance_staging
 WHERE event_date = '19/24/2019';
 
@@ -83,6 +81,7 @@ Most dates had 2 digit years, while some had four digit years.
 I'm going to convert them all to a consistent format, choosing
 the more descriptive four digit years.
 */
+
 ALTER TABLE event_performance_staging
 	ALTER COLUMN event_date
 	TYPE DATE
@@ -104,8 +103,8 @@ LIMIT 10;
 
 /*
 Attempting to convert points to int type
-
 */
+
 SELECT points::int
   FROM event_performance_staging;
 
@@ -117,22 +116,19 @@ There were two values in the points column that prevented
 converting the points column to an integer.  One entry was
 "732" and the other was 2006?.  In order to clean them,
 I drop the quotation marks and question marks, when filling
-in the new table.
+in the new, clean table.
 
 Also, I exclude the dates corresponding to 1999 and 2039.
 
 Assumptions
 
 event performance table:
-1. userid is a 37 character string.  
-	Note: All userids in the users table
-	were 36 characters and nearly all in the events table
-	were as well, except for two user ids that were 37 characters. 
-	Given that all other userids were 36 characters, these userids
-	are likely a typo of some kind, however the data corresponding 
-	to these userids seemed fine and leaving these data points in 
-	didn't seem like they'd cause problems with my analysis.  For
-	this reason, I left them in instead of dropping them.
+1. userid is a 36 character string.  
+	Note: All userids in this table were 36 characters, 
+	except for two user ids that were 37 characters.
+	One of these userids had double quotes at the end and the other had
+	a space at the end, both of which I assume are typos and are
+	fixed upon transferring to the new, clean table.
 2. event_date is DATE type, with dates occurring during years
 only subsequent to OhmConnect's creation.
 	Note: I found one date that occurs in 2039 and
@@ -144,7 +140,7 @@ only subsequent to OhmConnect's creation.
 DROP TABLE IF EXISTS event_performance;
 
 CREATE TABLE event_performance (
-	    userid VARCHAR(37) NOT NULL,
+	    userid VARCHAR(36) NOT NULL,
 	event_date DATE NOT NULL,
 	      hour int NOT NULL,
 	    points int NOT NULL,
@@ -152,7 +148,7 @@ CREATE TABLE event_performance (
 	);
 
 INSERT INTO event_performance(userid, event_date, hour, points) 
-     SELECT userid
+     SELECT REGEXP_REPLACE(userid, '[" ]', '', 'gi')
           , event_date
           , hour
           , REGEXP_REPLACE(points, '["?]', '', 'gi')::int
@@ -171,10 +167,11 @@ Assumptions
 
 users table:
 1. userid is meant to be a unique 36 character string
-	For this reason, I set userid to be a PRIMARY KEY
+	For this reason, I set userid to the PRIMARY KEY
 2. attribute1 is an integer that can only take on values of 0 or 1
 3. attribute2 is a single character string that only takes on 'A', 'B', or 'C'
 */
+
 DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
@@ -192,11 +189,11 @@ CREATE TABLE users (
            , attribute2
         FROM users_staging;
 
-
 /*
 Exporting cleaned copy of event_performance table to local drive,
 just to have a backup of the cleaned CSV.
 */
-COPY event_performance TO '/Users/rancher/Google Drive/Coding/Interviews/OhmConnect/data/clean/event_performance_clean.csv' 
+
+COPY event_performance TO '/Users/rancher/Google Drive/Coding/Interviews/OhmConnect/take_home_assignment/app_and_user_behavior_report/data/clean/event_performance_clean.csv' 
                      WITH DELIMITER ',' 
                       CSV HEADER;
