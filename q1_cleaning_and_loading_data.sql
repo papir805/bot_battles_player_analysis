@@ -9,7 +9,7 @@ DROP TABLE IF EXISTS users_staging;
 CREATE TABLE users_staging (
 	     userid text,
 	 attribute1 int,
-	 attribute2 text,
+	 attribute2 text
 	);
 
 DROP TABLE IF EXISTS event_performance_staging;
@@ -18,7 +18,7 @@ CREATE TABLE event_performance_staging (
 	    userid text,
 	event_date text,
 	      hour int,
-	    points text,
+	    points text
 	);
 
 /*
