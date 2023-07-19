@@ -130,7 +130,8 @@ event performance table:
 	a space at the end, both of which I assume are typos and are
 	fixed upon transferring to the new, clean table.
 2. event_date is DATE type, with dates occurring during years
-only subsequent to OhmConnect's creation.
+only subsequent to OhmConnect's creation and before the take
+home assignment was given to me.
 	Note: I found one date that occurs in 2039 and
 	another from 1999 and end up excluding both in the analysis.
 3. hour is an integer between 0 and 23 inclusive
@@ -153,8 +154,9 @@ INSERT INTO event_performance(userid, event_date, hour, points)
           , hour
           , REGEXP_REPLACE(points, '["?]', '', 'gi')::int
        FROM event_performance_staging
-      WHERE event_date <= '2023-07-13'
-        AND EXTRACT(YEAR FROM event_date) != 1999;
+      WHERE event_date <= '2023-07-13' --Date isn't from the future
+        AND EXTRACT(YEAR FROM event_date) >= 2013; --Date is from after
+        																					 --OhmConnect was founded.
 
 /*
 Moving users_staging into new users table
