@@ -343,7 +343,7 @@ plt.tight_layout();
 # %% [markdown]
 # The first graph shows all months have a sum of points greater than 0, which provides further evidence that overall, users are successfully contributing to winning gaming events. Late summer and early fall have the only three months that performed better than average, July, August, and September, with August being the best-performing month by a large margin. 
 #
-# Looking at the second graph, these late spring and summer months correspond to months where there were some of the largest increases in user participation.  However, there was a large increase in user participation between January and February too.  While February had only roughly average performance, that month saw the second largest increase in total points earned for the entire year.
+# Looking at the second graph, these late spring and summer months correspond to times where there were some of the largest increases in user participation.  However, there was a large increase in user participation between January and February too.  While February had only roughly average performance, that month saw the second largest increase in total points earned for the entire year.
 #
 # Outside of these best performing months, total points don't show much variation.  Points earned between February and July remain fairly consistent, which corresponds to the number of participating users stagnating over the same time period.  However, this trend doesn't hold true for the entire year as October, November, and December had the largest number of participating users, yet each of those months had point totals below average and show more variation than is found in February through July.
 #
@@ -494,19 +494,19 @@ fig, ax = plt.subplots(1, 4, sharex=True, sharey=True, figsize=(10,5))
 
 fig.suptitle('Performance by Season')
 
-hourly_point_totals_spring.plot(kind='bar', legend=False, ax=ax[0])
+hourly_point_totals_spring.plot(kind='bar', legend=False, ax=ax[0], edgecolor='black', rot=0)
 ax[0].set_title('Spring')
 ax[0].set_ylabel('Total Points (In Hundred-Thousands)')
 ax[0].get_yaxis().set_major_formatter(
     matplotlib.ticker.FuncFormatter(lambda x, p: format(round(int(x)/100_000, 2), ',')))
 
-hourly_point_totals_summer.plot(kind='bar', legend=False, ax=ax[1])
+hourly_point_totals_summer.plot(kind='bar', legend=False, ax=ax[1], edgecolor='black', rot=0)
 ax[1].set_title('Summer')
 
-hourly_point_totals_fall.plot(kind='bar', legend=False, ax=ax[2])
+hourly_point_totals_fall.plot(kind='bar', legend=False, ax=ax[2], edgecolor='black', rot=0)
 ax[2].set_title('Fall')
 
-hourly_point_totals_winter.plot(kind='bar', legend=False, ax=ax[3])
+hourly_point_totals_winter.plot(kind='bar', legend=False, ax=ax[3], edgecolor='black', rot=0)
 ax[3].set_title('Winter')
 
 plt.tight_layout();

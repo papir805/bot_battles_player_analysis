@@ -23,6 +23,7 @@ def exec_and_commit_query(sql_query,
     
 def sql_query_to_pandas_df(sql_query, 
                            engine, 
+                           path=None,
                            index_column=None, 
                            dates_column=None):
     """
@@ -50,5 +51,8 @@ def sql_query_to_pandas_df(sql_query,
                              con=conn, 
                              index_col=index_column,
                              parse_dates=dates_column)
+    if path:
+        import dataframe_image as dfi
+        dfi.export(df, path)
     
     return df
