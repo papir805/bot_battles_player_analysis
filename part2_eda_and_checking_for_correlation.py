@@ -24,6 +24,8 @@ from dotenv import load_dotenv
 
 import os
 
+import datetime
+
 # import traceback
 
 from sql_query_helper_funcs import exec_and_commit_query, sql_query_to_pandas_df
@@ -182,47 +184,47 @@ quantitative_summary_stats
 
 # %%
 sql_query = """ 
-  SELECT attribute1::text AS attribute
+  SELECT subscriber::text AS attribute
        , COUNT(userid) AS num_users
        , ROUND(COUNT(userid):: NUMERIC / 
             SUM(COUNT(userid)) OVER (), 4) AS rel_freq
     FROM users
-GROUP BY attribute1
+GROUP BY subscriber
 UNION
-  SELECT attribute2 AS attribute
+  SELECT category AS attribute
        , COUNT(userid) AS num_users
        , ROUND(COUNT(userid)::NUMERIC / 
             SUM(COUNT(userid)) OVER (), 4) AS rel_freq
     FROM users
-GROUP BY attribute2
+GROUP BY category
 ORDER BY 1;
 """
 
 sql_query_to_pandas_df(sql_query, engine, index_column='attribute')
 
 # %% [markdown]
-# In order to get a high-level understanding of the userbase, it's important to get a sense of what types of users are present.  The table above shows the distribution of users based on their attribute.  Attribute1 is a binary variable of either 0 or 1, while attribute2 is a categorical variable having values A, B, or C.  
+# In order to get a high-level understanding of the userbase, it's important to get a sense of what types of users are present.  The table above shows the distribution of users based on their attribute.  Subscriber is a binary variable of either 0 or 1, while category is a categorical variable having values A, B, or C.  
 #
-# From the table, an overwhelming majority of users (\~81%) have the first attribute set to 0.  For the second attribute, the majority of users (\~40%) have an attribute of B; however, a nearly equal amount of users (\~37%) have an attribute of A.
+# From the table, an overwhelming majority of users (\~81%) are not subscribers.  The majority of users (\~40%) fall in the B category; however, a nearly equal amount of users (\~37%) are in category A.
 
 # %%
 sql_query = """ 
-  SELECT attribute1
-       , attribute2
+  SELECT subscriber
+       , category
        , COUNT(userid) AS num_users
        , ROUND(COUNT(userid):: NUMERIC / 
             SUM(COUNT(userid)) OVER (), 4) AS rel_freq
     FROM users
-GROUP BY attribute1, attribute2
-ORDER BY attribute1, attribute2;
+GROUP BY subscriber, category
+ORDER BY subscriber, category;
 """
 
 sql_query_to_pandas_df(sql_query, 
                        engine, 
-                       index_column=['attribute1', 'attribute2'])
+                       index_column=['subscriber', 'category'])
 
 # %% [markdown]
-# Digging deeper, it looks like the most common user profile is 0B, with 0A not that far behind.  Overall, users with attribute1 = 1 are far rarer; however, among these users, those with attribute B are still the most common, and those with attribute A not far behind.  
+# Digging deeper, it looks like the most common user profile is 0B (non-subscriber in category B), with 0A (non-subscriber in category A) not that far behind.  Users who are subscribers are far rarer; however, among these users, those in the B category are still the most common, and those in category A are not far behind.  
 #
 # **This is important because establishing these user profiles now will be helpful later in understanding which kinds of users are most helpful in winning a gaming event.**
 
@@ -302,6 +304,18 @@ total_users_per_month = sql_query_to_pandas_df(sql_query,
                                                dates_column='month')
 
 # %%
+jan_tot_pts = total_points_per_month.loc['2019-01-01'].values[0]
+feb_tot_pts = total_points_per_month.loc['2019-02-01'].values[0]
+july_tot_pts = total_points_per_month.loc['2019-07-01'].values[0]
+aug_tot_pts = total_points_per_month.loc['2019-08-01'].values[0]
+sept_tot_pts = total_points_per_month.loc['2019-09-01'].values[0]
+
+jan_tot_users = total_users_per_month.loc['2019-01-01'].values[0]
+feb_tot_users = total_users_per_month.loc['2019-02-01'].values[0]
+july_tot_users = total_users_per_month.loc['2019-07-01'].values[0]
+aug_tot_users = total_users_per_month.loc['2019-08-01'].values[0]
+sept_tot_users = total_users_per_month.loc['2019-09-01'].values[0]
+
 avg_tot_pts_per_month = total_points_per_month.mean().values[0]
 min_tot_pts_per_month = total_points_per_month.min().values[0]
 max_tot_pts_per_month = total_points_per_month.max().values[0]
@@ -315,6 +329,27 @@ fig, ax = plt.subplots(2,1, sharex=True, figsize=(6,7))
 total_points_per_month.plot(kind='line', legend=False, ax=ax[0])
 ax[0].scatter(total_points_per_month.index, total_points_per_month.values, color='black', s=10)
 
+ax[0].vlines('2019-01-01', ymin=jan_tot_pts, ymax=feb_tot_pts, linestyle=':', color='green')
+ax[0].hlines(feb_tot_pts, xmin='2019-01-01', xmax='2019-02-01', linestyle=':', color='green')
+ax[0].annotate(f'+{round((feb_tot_pts-jan_tot_pts)/100_000,2)}',
+               xy=('2019-01-01', jan_tot_pts+(feb_tot_pts-jan_tot_pts)/2),
+               textcoords='offset points',
+               xytext=(-3,0), ha='right', color='green', fontsize=8)
+
+ax[0].vlines('2019-07-01', ymin=july_tot_pts, ymax=aug_tot_pts, linestyle=':', color='green')
+ax[0].hlines(aug_tot_pts, xmin='2019-07-01', xmax='2019-08-01', linestyle=':', color='green')
+ax[0].annotate(f'+{round((aug_tot_pts-july_tot_pts)/100_000,2)}',
+               xy=('2019-07-01', july_tot_pts+(aug_tot_pts-july_tot_pts)/2),
+               textcoords='offset points',
+               xytext=(-3,0), ha='right', color='green', fontsize=8)
+
+ax[0].vlines('2019-09-01', ymin=aug_tot_pts, ymax=sept_tot_pts, linestyle=':', color='red')
+ax[0].hlines(aug_tot_pts, xmin='2019-08-01', xmax='2019-09-01', linestyle=':', color='red')
+ax[0].annotate(f'{round((sept_tot_pts-aug_tot_pts)/100_000,2)}',
+               xy=('2019-09-01', aug_tot_pts+(sept_tot_pts-aug_tot_pts)/2),
+               textcoords='offset points',
+               xytext=(3,0), ha='left', color='red', fontsize=8)
+
 ax[0].set_title('Total Points Per Month')
 ax[0].set_xlabel('Month')
 ax[0].set_yticks([min_tot_pts_per_month, avg_tot_pts_per_month, max_tot_pts_per_month])
@@ -322,16 +357,40 @@ ax[0].get_yaxis().set_major_formatter(
     matplotlib.ticker.FuncFormatter(lambda x, p: format(round(int(x)/100_000, 2), ',')))
 ax[0].set_ylabel('Total Points (In Hundred-Thousands)')
 
-ax[0].axhline(avg_tot_pts_per_month, linestyle=':', color='red')
+
+ax[0].axhline(avg_tot_pts_per_month, linestyle='solid', color='orange', alpha=0.3)
 ax[0].annotate("Average Total Monthly Points", 
                xy=('2019-01-01',
                    avg_tot_pts_per_month), 
                textcoords="offset points", 
-               xytext=(5,5), c='red', fontsize=8, ha='left')
+               xytext=(5,5), c='orange', fontsize=8, ha='left')
 
 
 total_users_per_month.plot(kind='line', legend=False, ax=ax[1])
 ax[1].scatter(total_users_per_month.index, total_users_per_month.values, color='black', s=10)
+
+ax[1].set_xlim([datetime.date(2018, 12, 1), datetime.date(2019, 12, 1)])
+
+ax[1].vlines('2019-01-01', ymin=jan_tot_users, ymax=feb_tot_users, linestyle=':', color='green')
+ax[1].hlines(feb_tot_users, xmin='2019-01-01', xmax='2019-02-01', linestyle=':', color='green')
+ax[1].annotate(f'+{(feb_tot_users-jan_tot_users)}',
+               xy=('2019-01-01', jan_tot_users+(feb_tot_users-jan_tot_users)/2),
+               textcoords='offset points',
+               xytext=(-3,0), ha='right', color='green', fontsize=8)
+
+ax[1].vlines('2019-07-01', ymin=july_tot_users, ymax=aug_tot_users, linestyle=':', color='green')
+ax[1].hlines(aug_tot_users, xmin='2019-07-01', xmax='2019-08-01', linestyle=':', color='green')
+ax[1].annotate(f'+{(aug_tot_users-july_tot_users)}',
+               xy=('2019-07-01', july_tot_users+(aug_tot_users-july_tot_users)/2),
+               textcoords='offset points',
+               xytext=(-3,0), ha='right', color='green', fontsize=8)
+
+ax[1].vlines('2019-09-01', ymin=aug_tot_users, ymax=sept_tot_users, linestyle=':', color='red')
+ax[1].hlines(aug_tot_users, xmin='2019-08-01', xmax='2019-09-01', linestyle=':', color='red')
+ax[1].annotate(f'+{(sept_tot_users-aug_tot_users)}',
+               xy=('2019-09-01', aug_tot_users+(sept_tot_users-aug_tot_users)/2),
+               textcoords='offset points',
+               xytext=(3,0), ha='left', color='red', fontsize=8)
 
 ax[1].set_title('Unique Participating Users Per Month')
 ax[1].set_xlabel('Month')
@@ -412,6 +471,16 @@ negative_users_min_total = users_total_negative_points_per_month['total_negative
 
 negative_users_max_total = users_total_negative_points_per_month['total_negative_points'].max()
 
+may_positive_users_tot_pts = users_total_positive_points_per_month.loc['2019-05-01'].values[0]
+jun_positive_users_tot_pts = users_total_positive_points_per_month.loc['2019-06-01'].values[0]
+jul_positive_users_tot_pts = users_total_positive_points_per_month.loc['2019-07-01'].values[0]
+aug_positive_users_tot_pts = users_total_positive_points_per_month.loc['2019-08-01'].values[0]
+
+may_negative_users_tot_pts = users_total_negative_points_per_month.loc['2019-05-01'].values[0]
+jun_negative_users_tot_pts = users_total_negative_points_per_month.loc['2019-06-01'].values[0]
+jul_negative_users_tot_pts = users_total_negative_points_per_month.loc['2019-07-01'].values[0]
+aug_negative_users_tot_pts = users_total_negative_points_per_month.loc['2019-08-01'].values[0]
+
 # %%
 fig, ax = plt.subplots(1,1)
 
@@ -421,12 +490,41 @@ ax.scatter(users_total_positive_points_per_month.index,
            users_total_positive_points_per_month.values, 
            color='black', s=10)
 
+ax.vlines('2019-05-01', ymin=may_positive_users_tot_pts, ymax=jun_positive_users_tot_pts, linestyle=':', color='tab:blue')
+ax.hlines(jun_positive_users_tot_pts, xmin='2019-05-01', xmax='2019-06-01', linestyle=':', color='tab:blue')
+ax.annotate(f'+{round((jun_positive_users_tot_pts-may_positive_users_tot_pts)/100_000,2)}',
+               xy=('2019-05-01', may_positive_users_tot_pts+(jun_positive_users_tot_pts-may_positive_users_tot_pts)/2),
+               textcoords='offset points',
+               xytext=(-3,0), ha='right', color='tab:blue', fontsize=8)
+
+ax.vlines('2019-07-01', ymin=jul_positive_users_tot_pts, ymax=aug_positive_users_tot_pts, linestyle=':', color='tab:blue')
+ax.hlines(aug_positive_users_tot_pts, xmin='2019-07-01', xmax='2019-08-01', linestyle=':', color='tab:blue')
+ax.annotate(f'+{round((aug_positive_users_tot_pts-jul_positive_users_tot_pts)/100_000,2)}',
+               xy=('2019-07-01', jul_positive_users_tot_pts+(aug_positive_users_tot_pts-jul_positive_users_tot_pts)/2),
+               textcoords='offset points',
+               xytext=(-3,0), ha='right', color='tab:blue', fontsize=8)
+
 
 users_total_negative_points_per_month.plot(kind='line', legend=True, ax=ax)
 
 ax.scatter(users_total_negative_points_per_month.index, 
            users_total_negative_points_per_month.values, 
            color='black', s=10)
+
+ax.vlines('2019-05-01', ymin=may_negative_users_tot_pts, ymax=jun_negative_users_tot_pts, linestyle=':', color='tab:orange')
+ax.hlines(jun_negative_users_tot_pts, xmin='2019-05-01', xmax='2019-06-01', linestyle=':', color='tab:orange')
+ax.annotate(f'{round((jun_negative_users_tot_pts-may_negative_users_tot_pts)/100_000,2)}',
+               xy=('2019-05-01', may_negative_users_tot_pts+(jun_negative_users_tot_pts-may_negative_users_tot_pts)/2),
+               textcoords='offset points',
+               xytext=(-3,-12), ha='right', color='tab:orange', fontsize=8)
+
+ax.vlines('2019-07-01', ymin=jul_negative_users_tot_pts, ymax=aug_negative_users_tot_pts, linestyle=':', color='tab:orange')
+ax.hlines(aug_negative_users_tot_pts, xmin='2019-07-01', xmax='2019-08-01', linestyle=':', color='tab:orange')
+ax.annotate(f'{round((aug_negative_users_tot_pts-jul_negative_users_tot_pts)/100_000,2)}',
+               xy=('2019-07-01', jul_negative_users_tot_pts+(aug_negative_users_tot_pts-jul_negative_users_tot_pts)/2),
+               textcoords='offset points',
+               xytext=(-3,-12), ha='right', color='tab:orange', fontsize=8)
+
 
 ax.set_title('Users With Positive Yearly Point Totals Vs. Negative Yearly Point Totals')
 
@@ -438,7 +536,8 @@ ax.set_yticks([negative_users_min_total,
 
 ax.get_yaxis().set_major_formatter(
     matplotlib.ticker.FuncFormatter(lambda x, p: format(round(int(x)/100_000, 2), ',')))
-ax.set_ylabel('Total Points (In Hundred-Thousands)');
+ax.set_ylabel('Total Points (In Hundred-Thousands)')
+plt.tight_layout();
 
 # %% [markdown]
 # The plot above was generated by segmenting users who have a positive total number of points earned over the course of the year from users who have a negative total number of points earned over the course of the year.  In the summary statistics part of this analysis, it was noted that 71% of users had positive yearly point totals, while 29% of users had negative yearly point totals.  
@@ -579,18 +678,18 @@ ax.get_yaxis().set_major_formatter(
     matplotlib.ticker.FuncFormatter(lambda x, p: format(round(int(x)/100_000, 2), ',')))
 ax.set_ylabel('Total Points (In Hundred-Thousands)')
 
-ax.axhline(avg_tot_pts_per_day, linestyle=':', color='red')
-ax.axhline(0, linestyle=':', color='green')
+ax.axhline(avg_tot_pts_per_day, linestyle=':', color='green')
+ax.axhline(0, color='red', alpha=0.3)
 
 ax.annotate("Average Total Daily Points", 
             xy=('2019-01-01', avg_tot_pts_per_day), 
             xytext=(-10,50), 
             textcoords="offset points", 
-            c='red', 
+            c='green', 
             fontsize=8, 
             ha='left', 
             arrowprops=dict(arrowstyle='-|>', 
-                            color='red', 
+                            color='green', 
                             connectionstyle="bar,angle=180, fraction=-0.2"))
 
 ax.annotate(f'{min_day}', 
@@ -656,7 +755,7 @@ top_2_performers_per_month
 # %% [markdown]
 # Here can be seen the top 2 best performing userids for all 12 months during the year.  There are several users who come up multiple times in the list and have extremely large point totals for just a single month.  
 #
-# Circling back to the summary statistics from earlier it was noted that there were different distributions of users based on two variables, attribute1 and attribute2.  Could there be some correlation between high point scores and these user attributes?
+# Circling back to the summary statistics from earlier it was noted that there were different distributions of users based on two variables, subscriber and category.  Could there be some correlation between high point scores and these user attributes?
 
 # %% [markdown]
 # # Correlation
@@ -669,8 +768,8 @@ top_2_performers_per_month
 #
 # 1. The correlation we're interested in is between user attributes and yearly points earned.
 # 2. If a userid is found in the users table but not in the event performance table, that's because that userid never participated in a gaming event and thus has scored 0 points for the year.
-# 3. attribute1 is binary variable, taking on only values of 0 or 1.
-# 4. attribute2 is a nominal categorical variable with only three levels: A, B, or C.  Because attribute2 is nominal, there is no ordering to the levels.
+# 3. subscriber is binary variable, taking on only values of 0 or 1.
+# 4. category is a nominal categorical variable with only three levels: A, B, or C.  Because category is nominal, there is no ordering to the levels.
 
 # %% [markdown]
 # ## Joining Tables
@@ -685,8 +784,8 @@ WITH total_points_per_user AS (
   )
 
    SELECT u.userid
-        , u.attribute1
-        , u.attribute2
+        , u.subscriber
+        , u.category
         , COALESCE(tp.total_points, 0) AS total_points
      FROM users AS u
 LEFT JOIN total_points_per_user AS tp
@@ -703,76 +802,102 @@ users_attributes_and_tot_points = sql_query_to_pandas_df(sql_query,
 # ### Visualizing Correlation
 
 # %%
-fig, ax = plt.subplots(1, 2, sharey=True)
+fig, ax = plt.subplots(2, 1, sharex=True)
 
-users_attributes_and_tot_points.boxplot('total_points', by='attribute1', ax=ax[0])
-ax[0].set_ylabel('Total Points')
+boxplot1 = users_attributes_and_tot_points.boxplot('total_points', by='subscriber', ax=ax[0], vert=False, return_type='both')
+ax[0].set_title(None)
+ax[0].grid(None)
+ax[0].get_xaxis().set_major_formatter(
+    matplotlib.ticker.FuncFormatter(lambda x, p: format(round(int(x)/100_000, 2), ',')))
 
-users_attributes_and_tot_points.boxplot('total_points', by='attribute2', ax=ax[1])
+boxplot2 = users_attributes_and_tot_points.boxplot('total_points', by='category', ax=ax[1], vert=False, return_type='both')
+ax[1].set_title(None)
+ax[1].grid(None)
+ax[1].set_xlabel('Total Points (In Hundred-Thousands)')
 
-fig.suptitle('Boxplots Comparing Attribute Categories and Yearly Point Totals');
+
+
+fig.suptitle('Boxplots Comparing Attribute Categories and Yearly Point Totals')
+
+x = boxplot2[0][-1]['fliers'][2].get_xdata()
+y = boxplot2[0][-1]['fliers'][2].get_ydata()
+x.sort()
+y.sort()
+x = x[6:]
+y = y[6:]
+
+ax[1].scatter(x, y, color='blue')
+
+ax[1].axvline(x.min(), color='red', linestyle='solid', alpha=0.3);
 
 # %% [markdown]
-# The boxplot of attribute1 shows roughly the same spread of point totals regardless of whether attribute1 is set to 0 or 1.  Based on the first boxplot, my initial impression is that there's either no correlation or a weak correlation between attribute1 and yearly point totals.
+# The first boxplot shows roughly the same spread of point totals regardless of whether a user is a subscriber or not. The medians are close, and the overall distribution of point totals is pretty similar. My initial impression is that there's either no correlation or a weak correlation between whether a user is a subscriber and their yearly point totals.
 #
-# On the other hand, the second boxplot shows more noticeable differences between levels A, B, and C of attribute2.  Category C looks to be the strongest performing group, with very few users earning a negative amount of points; therefore, most of these users are consistently contributing points towards a winning game.  Category A and category B have roughly similar performance; however, category B is a little more spread out and has more extreme values on both the positive and negative sides. Based on the second boxplot, there appears to be a moderate correlation between attribute2 and yearly point totals.
+# On the other hand, the second boxplot shows more noticeable differences between the three categories: A, B, and C. Category A and B have fairly similar performance, although category A has a little less variability than category B. However, category C is quite different and is the most interesting.
+#
+# The plot reveals point totals for category C are skewed right and look to be the strongest performing group.  Very few users in this category have yearly point totals that are negative, and therefore these users must be consistently contributing to the human team's bottom line.
+#
+# Additionally, category C contains the users with the 9 highest point totals of the year, and it seems unlikely for that to be a coincidence.  This can be seen in the graph, where the red line represents the 9th highest point total of the year.  The nine players who scored at least that many points are represented by the colored circles to the right.
 
 # %% [markdown]
-# ### Attribute1
+# ### Subscriber
 
 # %%
-corr=users_attributes_and_tot_points['total_points'].corr(users_attributes_and_tot_points['attribute1'])
+corr=users_attributes_and_tot_points['total_points'].corr(users_attributes_and_tot_points['subscriber'])
 
 ax = sns.scatterplot(x=users_attributes_and_tot_points.index,
                      y='total_points',
                      data=users_attributes_and_tot_points,
-                     hue='attribute1')
-ax.axhline(y=0, linestyle=':', color='red')
+                     hue='subscriber')
+ax.axhline(y=0, linestyle='solid', color='red', alpha=0.4)
 ax.set_xticks([])
 ax.set_xlabel('userid')
+ax.set_ylabel('Total Points (In Hundred-Thousands)')
+ax.get_yaxis().set_major_formatter(
+    matplotlib.ticker.FuncFormatter(lambda x, p: format(round(int(x)/100_000, 2), ',')))
 
-ax.set_title(f'Scatterplot Comparing attribute1 and Yearly Point Totals \n(Correlation coefficient: {corr:.4f})');
+ax.set_title(f'Scatterplot Comparing subscriber and Yearly Point Totals \n(Correlation coefficient: {corr:.4f})');
 
 # %% [markdown]
-# Each dot in the scatterplot above represents a unique userid and their yearly point total.  Most dots are clustered together above or below 0, and there doesn't appear to be any noticeable pattern.  Because 81% of users have attribute1 = 0, most of the dots are blue, but there are good amounts of both orange and blue points in the higher point totals, as well as the lower point totals, and there isn't much evidence that one type of user will score much differently from the other.  Everything here confirms what was seen in the box plot earlier: there doesn't seem to be much correlation between attribute1 and points earned.  
+# Each dot in the scatterplot above represents a unique userid and their yearly point total.  Most dots are clustered together above or below 0, and there doesn't appear to be any noticeable pattern.  Because 81% of users are not subscribers, most of the dots are blue, but there are good amounts of both orange and blue points in the higher point totals, as well as the lower point totals, and there isn't much evidence that one type of user will score much differently from the other.  Everything here confirms what was seen in the box plot earlier: there doesn't seem to be much correlation between whether a user is a subscriber and points earned.  
 #
-# Since both attribute1 and total points are quantitative, Pearson's correlation coefficient can be calculated. The correlation coefficient is 0.1551, indicating a weak correlation; however, this could be true of our sample data and not necessarily true in the greater population.  To check, a t-test must be performed.
+# Since both subscriber and total points are quantitative, Pearson's correlation coefficient can be calculated. The correlation coefficient is 0.1551, indicating a weak correlation; however, this could be true of our sample data and not necessarily true in the greater population.  To check, a t-test must be performed.
 
 # %%
-X = users_attributes_and_tot_points.loc[:, ['attribute1']]
+X = users_attributes_and_tot_points.loc[:, ['subscriber']]
 X = sm.add_constant(X)
 y = users_attributes_and_tot_points.loc[:, ['total_points']]
 
-linear_model_attribute1 = sm.OLS(y, X).fit()
+linear_model_subscriber = sm.OLS(y, X).fit()
 
 # %%
-attribute1_summary_results = linear_model_attribute1.conf_int()
+subscriber_summary_results = linear_model_subscriber.conf_int()
 
-attribute1_summary_results.rename(mapper={0:'95%_conf_int_lower', 
+subscriber_summary_results.rename(mapper={0:'95%_conf_int_lower', 
                                           1:'95%_conf_int_upper'}, 
                                   axis=1, inplace=True)
 
-attribute1_summary_results['pvalues'] = linear_model_attribute1.pvalues
-attribute1_summary_results['coefficients'] = linear_model_attribute1.params
+subscriber_summary_results['pvalues'] = linear_model_subscriber.pvalues
+subscriber_summary_results['coefficients'] = linear_model_subscriber.params
 
-attribute1_summary_results = attribute1_summary_results[['coefficients', 
+subscriber_summary_results = subscriber_summary_results[['coefficients', 
                                                          'pvalues', 
                                                          '95%_conf_int_lower', 
                                                          '95%_conf_int_upper']]
 
-round(attribute1_summary_results.loc[['attribute1']], 4)
+round(subscriber_summary_results.loc[['subscriber']], 4)
 
 # %% [markdown]
 # #### Peforming a t-test
 
 # %% [markdown]
-# $H_0:$ There is no significant correlation between attribute1 and total_points
+# $H_0:$ There is no significant correlation between subscriber and total_points
 #
-# $H_a:$ There is a significant correlation between attribute1 and total_points
+# $H_a:$ There is a significant correlation between subscriber and total_points
 #
-# At the $\alpha=0.05$ level of significance, the P-value is ~0 and the null hypothesis should be rejected.  This indicates there is sufficient evidence to conclude that attribute1 is statistically significant when predicting total points.  
+# At the $\alpha=0.05$ level of significance, the P-value is ~0 and the null hypothesis should be rejected.  This indicates there is sufficient evidence to conclude that subscriber is statistically significant when predicting total points.  
 #
-# The summary output from above shows that the coefficient for attribute1 is 6,684.8246, meaning that on average, someone who has attribute1 = 1 will earn 6,684.8246 points more than someone with attribute1 = 0.  We are 95% confident that the true increase in points earned for those with attribute1 = 1 is between 4,163.9272 and 9,205.7219 points. 
+# The summary output from above shows that the coefficient for subscriber is 6,684.8246, meaning that on average, someone who has subscriber = 1 will earn 6,684.8246 points more than someone with subscriber = 0.  We are 95% confident that the true increase in points earned for those with subscriber = 1 is between 4,163.9272 and 9,205.7219 points. 
 
 # %% [markdown]
 # #### Checking Assumptions of Linear Regression to Determine Validity of the Results
@@ -788,11 +913,11 @@ round(attribute1_summary_results.loc[['attribute1']], 4)
 # %%
 fig, ax = plt.subplots(1,1)
 
-ax.scatter(users_attributes_and_tot_points['attribute1'], 
+ax.scatter(users_attributes_and_tot_points['subscriber'], 
            users_attributes_and_tot_points['total_points'])
 
 ax.set_title('Scatterplot to Check for Linear Relationship')
-ax.set_xlabel('attribute1')
+ax.set_xlabel('subscriber')
 ax.set_xticks([0,1])
 ax.set_ylabel('Total Points');
 
@@ -800,7 +925,7 @@ ax.set_ylabel('Total Points');
 # The scatter plot doesn't show any indication that the first assumption is violated.  A linear model could be reasonable for this relationship.
 
 # %%
-preds = linear_model_attribute1.predict(X)
+preds = linear_model_subscriber.predict(X)
 residuals = users_attributes_and_tot_points['total_points'] - preds
 
 fig, ax = plt.subplots(1,1)
@@ -820,91 +945,122 @@ stats.probplot(residuals, plot=plt);
 # %% [markdown]
 # Most of the data points lie close to the straight line; however, there is slight curving, most noticeably on the right side.  This indicates that the residuals may not be normally distributed, which violates the third assumption.
 #
-# All of the assumptions except for the assumption of normal residuals seem valid, and therefore the conclusion that a correlation exists between attribute1 and total points earned is still reasonable, although it should be taken with a grain of salt.
+# All of the assumptions except for the assumption of normal residuals seem valid, and therefore the conclusion that a correlation exists between subscriber and total points earned is still reasonable, although it should be taken with a grain of salt.
 
 # %% [markdown]
-# ### Attribute2
+# ### Category
 
 # %%
 ax = sns.scatterplot(x=users_attributes_and_tot_points.index,
                      y='total_points',
                      data=users_attributes_and_tot_points,
-                     hue='attribute2')
-ax.axhline(y=0, linestyle=':', color='red')
-ax.set_title('Scatterplot Comparing attribute2 and Yearly Point Totals')
+                     hue='category')
+ax.axhline(y=0, linestyle='solid', color='red', alpha=0.4)
+ax.set_title('Scatterplot Comparing category and Yearly Point Totals')
 ax.set_xticks([])
-ax.set_xlabel('userid');
+ax.set_xlabel('userid')
+ax.set_ylabel('Total Points (In Hundred-Thousands)')
+ax.get_yaxis().set_major_formatter(
+    matplotlib.ticker.FuncFormatter(lambda x, p: format(round(int(x)/100_000, 2), ',')));
 
 # %% [markdown]
 # Each dot in the scatterplot above represents a unique userid and their yearly point total, which further sheds light on the patterns identified in the box plots from earlier.
 #
-# Firstly, nearly all users with attribute2 = C have positive yearly totals, and these users tend to have the best performance as they're the most common color found in the higher point totals.  Users with attribute2 = A are clustered close to 0 and have a tendency to have either slightly above or below 0 total points.  In comparison, most users with attribute2 = B are also clustered close to 0, but are a little more spread out and show more variation in point totals.  
+# Firstly, nearly all users with category = C have positive yearly totals, and these users tend to have the best performance as they're the most common color found in the higher point totals.  Users with category = A are clustered close to 0 and have a tendency to have either slightly above or below 0 total points.  In comparison, most users with category = B are also clustered close to 0, but are a little more spread out and show more variation in point totals.  
 #
-# Since attribute2 is categorical, Pearson's correlation coefficient can't be computed at the moment; however, a One Way ANOVA test can be performed to determine if a correlation exists.
+# Since category is categorical, Pearson's correlation coefficient can't be computed at the moment; however, a One Way ANOVA test can be performed to determine if a correlation exists.
 
 # %% [markdown]
 # #### Performing a One Way ANOVA test
 
 # %%
-attribute2_lists = users_attributes_and_tot_points.groupby('attribute2')['total_points'].apply(list)
+category_lists = users_attributes_and_tot_points.groupby('category')['total_points'].apply(list)
 
-anova_results = stats.f_oneway(*attribute2_lists)
+anova_results = stats.f_oneway(*category_lists)
 
 print(f'P-Value: {anova_results.pvalue:.4f}')
 
 # %% [markdown]
-# $H_0$: Attribute2 and total yearly points are not correlated
+# $H_0$: category and total yearly points are not correlated
 #
-# $H_a$: Attribute2 and total yearly points are correlated
+# $H_a$: category and total yearly points are correlated
 #
-# At the $\alpha=0.05$ level of significance, the P-value is ~0 and the null hypothesis should be rejected.  This indicates there is sufficient evidence to conclude that attribute2 is correlated with yearly point totals.
+# At the $\alpha=0.05$ level of significance, the P-value is ~0 and the null hypothesis should be rejected.  This indicates there is sufficient evidence to conclude that category is correlated with yearly point totals.
 #
-# One downside to this test is that it doesn't indicate which level(s) of attribute2 are most correlated with total points earned; however, we can encode attribute2 using dummy variables and check the strength of the correlation that way. 
+# One downside to this test is that it doesn't indicate which level(s) of category are most correlated with total points earned; however, we can encode category using dummy variables and check the strength of the correlation that way. 
 
 # %% [markdown]
 # #### Dummy variables and quantifying correlation
 
 # %%
-dummy_df = pd.get_dummies(users_attributes_and_tot_points, columns=['attribute2'], dtype=float)
+dummy_df = pd.get_dummies(users_attributes_and_tot_points, columns=['category'], dtype=float)
 
 # %%
-correlations = dummy_df[['attribute2_A', 'attribute2_B', 'attribute2_C', 'total_points']].corr()
+correlations = dummy_df[['subscriber', 'category_A', 'category_B', 'category_C', 'total_points']].corr()
 
-sns.heatmap(correlations, annot=True, cmap='RdBu');
+x=correlations[['total_points']][0:4]
+
+
+sns.heatmap(x, annot=True, cmap='RdBu', fmt='.4g');
 
 # %% [markdown]
-# A simple heatmap shows that both levels A and B have weak/moderate negative correlations with total points earned, -0.24 and -0.21, respectively, although attribute A is slightly more negatively correlated.  On the other hand, level C has a moderately positive correlation with total points earned of 0.54.
+# A simple heatmap shows that both category A and B have weak/moderate negative correlations with total points earned, -0.24 and -0.21, respectively, although category A is slightly more negatively correlated.  On the other hand, category C has a moderately positive correlation with total points earned of 0.54.
+
+# %% [markdown]
+# #### Building a Multiple Linear Regression
 
 # %%
-X = dummy_df.loc[:, ['attribute2_B', 'attribute2_C']]
+X = dummy_df.loc[:, ['subscriber', 'category_B', 'category_C']]
 X = sm.add_constant(X)
 y = dummy_df.loc[:, ['total_points']]
 
-linear_model_attribute2 = sm.OLS(y, X).fit()
+linear_model_all = sm.OLS(y, X).fit()
 
 # %%
-attribute2_summary_results = linear_model_attribute2.conf_int()
-
-attribute2_summary_results.rename(mapper={0:'95%_conf_int_lower', 
-                                          1:'95%_conf_int_upper'}, 
-                                  axis=1, inplace=True)
-
-attribute2_summary_results['pvalues'] = linear_model_attribute2.pvalues
-attribute2_summary_results['coefficients'] = linear_model_attribute2.params
-
-attribute2_summary_results = attribute2_summary_results[['coefficients', 
-                                                         'pvalues', 
-                                                         '95%_conf_int_lower', 
-                                                         '95%_conf_int_upper']]
-
-round(attribute2_summary_results.loc[['attribute2_B', 'attribute2_C']], 4)
+tbl = linear_model_all.summary2().tables[1]
+round(tbl, 4)
 
 # %% [markdown]
-# In order to avoid the dummy variable trap, regression has to be performed using all but one level of attribute2, which acts as the baseline level for comparison.  In this model, attribute2 = A represents the baseline level, and any coefficients of the model must be interpreted relative to level A.
+# In order to avoid the dummy variable trap, regression has to be performed using all but one level of the dummy variable, which acts as the baseline level for comparison.  In this model, category A represents the baseline level for the dummy variable, and any coefficients of the model must be interpreted relative to that category.
 #
-# The summary output above shows the P-value for level B is 0.35, meaning that there is no significant correlation between attribute2 = B and total points earned.  However, the P-value for level C is ~0 and attribute2 = C is a statistically significant predictor.  
+# The model will have the following form: $\hat{y} = \beta_0 + \beta_1x_1 + \beta_2x_2 + \beta_3x_3$, where $x_1$, $x_2$, and $x_3$ correspond to the coding scheme:
 #
-# The coefficient for level C is 21,973.6579 points.  This means that on average, a user with attribute2 = C will earn 21,973.6579 points more than a user at the baseline level of attibute2 (attribute2 = A).  We are 95% confident that those with attribute2 = C will earn between 19,742.9743 and 24,204.3415 points more than users at baseline level A.
+# <ul>
+# 											<li>
+# 												$x_1 = \left\{\begin{aligned} 
+# 													1 &\text{ if userid is a paid subscriber} \\
+# 													0 &\text{ if userid is not a paid subscriber}
+# 												\end{aligned} \right.$
+# 											</li><br>
+# 											<li>
+# 												$x_2 = \left\{\begin{aligned} 
+# 													1 &\text{ if userid is in category B} \\
+# 													0 &\text{ if userid is not in category B}
+# 												\end{aligned} \right.$
+# 											</li><br>
+# 											<li>
+# 												$x_3 = \left\{\begin{aligned} 
+# 													1 &\text{ if userid is in category C} \\
+# 													0 &\text{ if userid is not in category C}
+# 												\end{aligned} \right.$
+# 											</li><br>
+# 										</ul>
+#                                         
+# After plugging in the coefficients generated by the summary output, the model looks like this: $\hat{y}=114.4202+7258.8017x_1+617.8321x_2+22002.3214x_3$.
+#
+# Understanding how to interpret the model will help understand the relationship between user attributes and user performance.  When $x_1, x_2$, and $x_3$ are all set to 0, you have your baseline user, a non-subscriber, who is neither in category B nor in category C; therefore, they must be in category A.  For this kind of user, the model's predicted yearly point total would simply be the constant 114.4202.  
+#
+# If $x_2$ is set to 1 and all other variables remain 0, then this would represent a non-subscriber in category B.  For this kind of user, the predicted yearly point total would increase by the coefficient of 617.8321 points.  This indicates that, on average, non-subscribers in category B earn 617.8321 points more than non-subscribers in category A.  This echoes what was seen earlier regarding there not being much difference in point scores between users in these categories.
+#
+# When $x_3$ is set to 1 and all other variables remain 0, the user is a non-subscriber in category C.  For this kind of user, the model would predict a yearly point total of 22,002.314 points higher than the baseline user.  This is the largest coefficient of the model and emphasizes just how strong the performance of users in category C really is.
+#
+# When $x_1 = 1$, this indicates the user is a subscriber.  Users of any category can be subscribers; therefore, regardless of the values of $x_2$ or $x_3$, $x_1$ could be set to one and "turned on".  Turning on $x_1$ would increase the model's prediction of yearly point totals by its coefficient of 7258.8017, meaning that a subscribing user is predicted to earn that many points more than a non-subscribing user from the same category.  Despite earlier identifying subscriber as having a weak correlation, it produces the second largest effect on predicted yearly point totals in this model and looks to be more important than was initially thought.
+
+# %% [markdown]
+# ## Conclusions
+
+# %% [markdown]
+# In summary, it seems as though the question of whether there's any correlation between user attributes and user performance has been answered.  Both subscriber and category are statistically significant predictors of a user's performance as measured through their yearly point totals.  The single best predictor is which category a user falls into, with category C being the most important; however, knowing whether a user is a subscriber or not is pretty important too.
 
 # %% [markdown]
 # # The End
