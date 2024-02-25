@@ -8,7 +8,7 @@ CREATE TABLE
 COPY
   users_staging(userid, subscriber, country)
 FROM
-  '/Users/rancher/Google Drive/Coding/Interviews/OhmConnect/take_home_assignment/mobile_app_data_analysis/data/users.csv'
+  '{working_dir}/data/users.csv'
 DELIMITER
   ','
 CSV HEADER;
@@ -24,7 +24,7 @@ CREATE TABLE
 COPY
   event_performance_staging(userid, event_date, hour, points)
 FROM
-  '/Users/rancher/Google Drive/Coding/Interviews/OhmConnect/take_home_assignment/mobile_app_data_analysis/data/event_performance.csv'
+  '{working_dir}/data/event_performance.csv'
 DELIMITER
   ','
 CSV HEADER;
