@@ -1,15 +1,11 @@
 -- Question 1: Which month(s) had the most and least points scored?
 --    Which month(s) have the most and least participating players?
-SELECT 
-  DATE_TRUNC('month', event_date)::date AS month
-  , SUM(points) AS total_points
-  , COUNT(DISTINCT userid) AS total_users
-FROM
-  event_performance
-GROUP BY
-  DATE_TRUNC('month', event_date)::date
-ORDER BY
-  DATE_TRUNC('month', event_date)::date;
+SELECT DATE_TRUNC('month', event_date)::date AS month
+       , SUM(points) AS total_points
+       , COUNT(DISTINCT userid) AS total_users
+FROM event_performance
+GROUP BY DATE_TRUNC('month', event_date)::date
+ORDER BY DATE_TRUNC('month', event_date)::date;
 --Results:
 --    month    | total_points | total_users 
 -- ------------+--------------+-------------
@@ -28,39 +24,31 @@ ORDER BY
 
 -- Question 2: How does player activity change from season to season?
 WITH event_performance_seasons AS (
-  SELECT 
-    userid
-    , event_date
-    , hour
-    , points
-    , CASE WHEN EXTRACT(
-        MONTH 
-        FROM 
-          event_date
-      ) IN (3, 4, 5) THEN '0_spring' WHEN EXTRACT(
-        MONTH 
-        FROM 
-          event_date
-      ) IN (6, 7, 8) THEN '1_summer' WHEN EXTRACT(
-        MONTH 
-        FROM 
-          event_date
-      ) IN (9, 10, 11) THEN '2_fall' ELSE '3_winter' END AS season 
-  FROM 
-    event_performance
+  SELECT userid
+         , event_date
+         , hour
+         , points
+         , CASE 
+             WHEN EXTRACT(
+                    MONTH FROM event_date
+                    ) IN (3, 4, 5) THEN '0_spring'
+             WHEN EXTRACT(
+                    MONTH FROM event_date
+                    ) IN (6, 7, 8) THEN '1_summer'
+             WHEN EXTRACT(
+                    MONTH FROM event_date
+                    ) IN (9, 10, 11) THEN '2_fall' 
+             ELSE '3_winter' 
+           END AS season 
+  FROM event_performance
 ) 
-SELECT 
-  season, 
-  hour, 
-  SUM(points) AS tot_points 
-FROM 
-  event_performance_seasons 
-GROUP BY 
-  season, 
-  hour 
-ORDER BY 
-  season, 
-  hour;
+
+SELECT season
+       , hour
+       , SUM(points) AS tot_points 
+FROM event_performance_seasons 
+GROUP BY season, hour 
+ORDER BY season, hour;
 
 --Results:
 --   season  | hour | tot_points 
@@ -83,15 +71,11 @@ ORDER BY
 --  3_winter |   20 |     236414
 
 -- Question 3: How does player activity change from event to event?
-SELECT 
-  DATE_TRUNC('day', event_date)::date AS day
-  , SUM(points) AS total_points
-FROM
-  event_performance
-GROUP BY
-  DATE_TRUNC('day', event_date)::date
-ORDER BY
-  DATE_TRUNC('day', event_date)::date;
+SELECT DATE_TRUNC('day', event_date)::date AS day
+       , SUM(points) AS total_points
+FROM event_performance
+GROUP BY DATE_TRUNC('day', event_date)::date
+ORDER BY DATE_TRUNC('day', event_date)::date;
 --Results (sample of rows):
 --     day     | total_points 
 -- ------------+--------------

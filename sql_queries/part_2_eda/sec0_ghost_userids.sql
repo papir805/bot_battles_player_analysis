@@ -1,12 +1,9 @@
 -- Question 1: How many unique userids in the event_performance table
 -- match with a userid in the users table
-SELECT
-  COUNT(DISTINCT users.userid) AS num_unique_users_tbl
-  , COUNT(DISTINCT event_performance.userid) AS num_unique_event_perf_tbl
-FROM 
-  users
-RIGHT JOIN
-  event_performance
+SELECT COUNT(DISTINCT users.userid) AS num_unique_users_tbl
+       , COUNT(DISTINCT event_performance.userid) AS num_unique_event_perf_tbl
+FROM event_performance
+LEFT JOIN users
   ON users.userid = event_performance.userid;
 
 --Results:
@@ -16,12 +13,10 @@ RIGHT JOIN
 
 -- Question 2: Which userids show up in event_performance but don't show up in 
 -- the users table?
-SELECT
-  DISTINCT(event_performance.userid) AS ghost_userids
-FROM 
-  users
-RIGHT JOIN
-  event_performance
+SELECT DISTINCT(event_performance.userid) AS ghost_userids
+FROM event_performance
+LEFT JOIN
+  users 
   ON users.userid = event_performance.userid
 WHERE users.userid IS NULL;
 
@@ -41,12 +36,9 @@ WHERE users.userid IS NULL;
 
 -- Question 3: How many entries in event_performance come from
 -- these ghost userids?
-SELECT
-  COUNT(*) AS ghost_userid_num_entries
-FROM 
-  users
-RIGHT JOIN
-  event_performance
+SELECT COUNT(*) AS ghost_userid_num_entries
+FROM event_performance
+LEFT JOIN users
   ON users.userid = event_performance.userid
 WHERE users.userid IS NULL;
 
