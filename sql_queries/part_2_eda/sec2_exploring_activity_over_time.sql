@@ -85,3 +85,24 @@ ORDER BY DATE_TRUNC('day', event_date)::date;
 --  2019-01-08 |         -143
 --  2019-01-15 |        30934
 --     ...     |     ...     
+
+SELECT country
+     , COUNT(hour) AS cnt
+FROM users
+LEFT JOIN event_performance
+ON users.userid = event_performance.userid
+GROUP BY country;
+
+SELECT country
+     , subscriber
+     , ROUND(COUNT(userid) / SUM(COUNT(userid)) OVER () * 100, 2) AS pct
+FROM users
+GROUP BY country, subscriber
+ORDER BY 1, 2, 3 DESC;
+
+SELECT country
+     , subscriber
+     , ROUND(COUNT(userid) / SUM(COUNT(userid)) OVER (PARTITION BY country) * 100, 2) AS pct
+FROM users
+GROUP BY country, subscriber
+ORDER BY 1, 2, 3 DESC;
